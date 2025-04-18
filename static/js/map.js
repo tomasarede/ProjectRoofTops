@@ -29,10 +29,16 @@ function initMap(bounds) {
         maxZoom: 19
     });
 
-    // Add layer control
+    // Add layer control with additional hybrid option
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const roadsLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        opacity: 0.7
+    });
+    
     const baseLayers = {
-        "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
-        "Satellite": satelliteLayer
+        "OpenStreetMap": osmLayer,
+        "Satellite": satelliteLayer,
+        "Satellite + Roads": L.layerGroup([satelliteLayer, roadsLayer])
     };
     
     L.control.layers(baseLayers).addTo(map);

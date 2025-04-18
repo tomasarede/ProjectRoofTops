@@ -33,7 +33,7 @@ class YoloModel:
         """Initialize the YOLO model"""
         self.logger = logging.getLogger(__name__)
         self.model_loaded = False
-        self.name = "YOLOv10 Rooftop Detector"
+        self.name = "YOLOv5 Rooftop Detector"
         self.version = "1.0"
         
         # In a real implementation, load the actual YOLO model here
@@ -128,7 +128,7 @@ class YoloModel:
             for x, y in pixel_coords:
                 lng = min_lng + (x / width) * (max_lng - min_lng)
                 lat = max_lat - (y / height) * (max_lat - min_lat)
-                geo_coords.append((lng, lat))
+                geo_coords.append((lat, lng))
             
             # Add first point at the end to close the polygon
             geo_coords.append(geo_coords[0])
@@ -137,9 +137,9 @@ class YoloModel:
             # In a real implementation, use a proper GIS library for area calculation
             area = self._calculate_approx_area(geo_coords)
             
-            # Calculate centroid
-            centroid_lng = sum(c[0] for c in geo_coords[:-1]) / len(geo_coords[:-1])
-            centroid_lat = sum(c[1] for c in geo_coords[:-1]) / len(geo_coords[:-1])
+            # Calculate centroid (note: our coordinates are now [lat, lng])
+            centroid_lat = sum(c[0] for c in geo_coords[:-1]) / len(geo_coords[:-1])
+            centroid_lng = sum(c[1] for c in geo_coords[:-1]) / len(geo_coords[:-1])
             
             # Create Rooftop object
             rooftop = Rooftop(
@@ -172,7 +172,7 @@ class YoloModel:
         # Convert to square meters (very approximate)
         # 1 degree of latitude ≈ 111,000 meters
         # 1 degree of longitude ≈ 111,000 * cos(latitude) meters
-        avg_lat = sum(p[1] for p in coords) / len(coords)
+        avg_lat = sum(p[0] for p in coords) / len(coords)  # Lat is now in position 0
         longitude_scale = np.cos(np.radians(avg_lat))
         
         area_m2 = area * (111000 ** 2) * longitude_scale

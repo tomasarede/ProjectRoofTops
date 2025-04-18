@@ -11,10 +11,6 @@ function initDashboard() {
         }
     });
     
-    // Set up event listeners for the export buttons
-    document.getElementById('exportGeoJSON').addEventListener('click', exportAsGeoJSON);
-    document.getElementById('exportCSV').addEventListener('click', exportAsCSV);
-    
     // Initialize charts with empty data
     initializeCharts();
 }
