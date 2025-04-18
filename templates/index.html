@@ -14,7 +14,8 @@
             height: calc(100vh - 100px);
             overflow-y: auto;
         }
-        .leaflet-draw-toolbar a {
+        /* Google Maps drawing toolbar styling */
+        .gm-style .gm-style-mtc button {
             background-color: #212529;
         }
         .alert-floating {
@@ -150,6 +151,11 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="mt-3">
+                            <button id="showDetailedAnalyticsBtn" class="btn btn-primary w-100 action-btn" data-bs-toggle="modal" data-bs-target="#detailedAnalyticsModal">
+                                <i class="fas fa-solar-panel me-2"></i> View Detailed PV Analytics
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -175,7 +181,7 @@
                             <table class="table table-sm table-hover">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
+                                        <th class="text-center">#</th>
                                         <th>Area (m²)</th>
                                         <th>Confidence</th>
                                         <th>Actions</th>
@@ -189,12 +195,7 @@
                     </div>
                 </div>
                 
-                <!-- Advanced Analytics Button -->
-                <div class="d-grid mt-4">
-                    <button id="showDetailedAnalyticsBtn" class="btn btn-lg btn-primary">
-                        <i class="fas fa-solar-panel me-2"></i> View Detailed PV Analytics
-                    </button>
-                </div>
+                <!-- Advanced Analytics button removed from here and moved into the summary card -->
             </div>
         </div>
     </div>
@@ -399,15 +400,10 @@
 </div>
 
 {% block scripts %}
-<!-- Leaflet Draw Plugin -->
-<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<!-- Chart.js (already loaded in base.html) -->
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- Map JS -->
-<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<!-- Map JS - Google Maps implementation -->
+<script src="{{ url_for('static', filename='js/map_google.js') }}"></script>
 
 <!-- Dashboard JS -->
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
@@ -424,10 +420,12 @@
         // Initialize the dashboard
         initDashboard();
         
-        // Set up event listener for detailed analytics button
-        const detailedAnalyticsBtn = document.getElementById('showDetailedAnalyticsBtn');
-        if (detailedAnalyticsBtn) {
-            detailedAnalyticsBtn.addEventListener('click', showDetailedAnalytics);
+        // Set up event listener for detailed analytics modal being shown
+        const detailedAnalyticsModal = document.getElementById('detailedAnalyticsModal');
+        if (detailedAnalyticsModal) {
+            detailedAnalyticsModal.addEventListener('show.bs.modal', function (event) {
+                showDetailedAnalytics();
+            });
         }
         
         // Set up event listener for report generation
@@ -451,9 +449,7 @@
         document.getElementById('detailedAnalyticsContent').style.display = 'none';
         document.getElementById('detailedAnalyticsError').style.display = 'none';
         
-        // Show the modal
-        const modal = new bootstrap.Modal(document.getElementById('detailedAnalyticsModal'));
-        modal.show();
+        // Modal is already being shown by the data-bs-toggle attribute
         
         // Get data from the results
         const capacity = parseFloat(document.getElementById('potentialCapacity').textContent);

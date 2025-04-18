@@ -8,13 +8,7 @@
     <!-- Bootstrap Dark Theme CSS -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-          crossorigin=""/>
-          
-    <!-- Leaflet Geocoder CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <!-- Google Maps API will be loaded via JavaScript -->
     
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -40,11 +34,6 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/analytics">
-                            <i class="fas fa-chart-line me-1"></i> Analytics
-                        </a>
-                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" id="aboutBtn" data-bs-toggle="modal" data-bs-target="#aboutModal">
                             <i class="fas fa-info-circle me-1"></i> About
@@ -84,8 +73,10 @@
                     <ul>
                         <li>Backend: Flask (Python)</li>
                         <li>Frontend: HTML, CSS, JavaScript</li>
-                        <li>Mapping: Leaflet.js</li>
+                        <li>Mapping: Google Maps API</li>
                         <li>Rooftop Detection: YOLO (You Only Look Once)</li>
+                        <li>Solar Calculation: PVLib</li>
+                        <li>GIS Processing: GeoPandas & Shapely</li>
                         <li>Visualization: Chart.js</li>
                     </ul>
                 </div>
@@ -99,13 +90,8 @@
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-            crossorigin=""></script>
-            
-    <!-- Leaflet Geocoder JS -->
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <!-- Google Maps API with drawing tools -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBtgYeEO2QBwzOnw_s8GcHNIpabfS3uVHc&libraries=drawing,places,geometry&v=weekly"></script>
     
     {% block scripts %}{% endblock %}
 </body>

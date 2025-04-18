@@ -1,7 +1,13 @@
 import logging
-import numpy as np
+import numpy as np  # Keep numpy for array handling
 import uuid
 import requests
+import geopandas as gpd
+import shapely.geometry as sg
+from shapely.ops import transform
+from shapely.geometry import Polygon, Point
+import pyproj
+from functools import partial
 from io import BytesIO
 from typing import Dict, List, Any, Tuple
 from PIL import Image
@@ -83,7 +89,7 @@ def process_area(bounds: Dict[str, float], max_area: float, yolo_model) -> Dict[
 
 def calculate_area_size(bounds: Dict[str, float]) -> float:
     """
-    Calculate the approximate size of the area in square kilometers
+    Calculate the approximate size of the area in square kilometers using GeoPandas
     
     Args:
         bounds: Dictionary with north, south, east, west bounds
@@ -91,21 +97,23 @@ def calculate_area_size(bounds: Dict[str, float]) -> float:
     Returns:
         Area size in square kilometers
     """
-    # Calculate width and height in degrees
-    width_deg = bounds['east'] - bounds['west']
-    height_deg = bounds['north'] - bounds['south']
+    # Create a polygon from the bounds
+    polygon = Polygon([
+        (bounds['west'], bounds['south']),
+        (bounds['east'], bounds['south']),
+        (bounds['east'], bounds['north']),
+        (bounds['west'], bounds['north']),
+        (bounds['west'], bounds['south'])
+    ])
     
-    # Average latitude for width calculation
-    avg_lat = (bounds['north'] + bounds['south']) / 2
+    # Create a GeoPandas GeoDataFrame with WGS84 CRS
+    gdf = gpd.GeoDataFrame({'geometry': [polygon]}, crs='EPSG:4326')
     
-    # Convert degrees to kilometers (approximate)
-    # 1 degree of latitude ≈ 111 km
-    # 1 degree of longitude ≈ 111 km * cos(latitude)
-    height_km = height_deg * 111
-    width_km = width_deg * 111 * np.cos(np.radians(avg_lat))
+    # Project to an equal-area projection (EPSG:3857 - Web Mercator)
+    gdf_projected = gdf.to_crs('EPSG:3857')
     
-    # Calculate area
-    area_km2 = width_km * height_km
+    # Calculate area in square meters and convert to square kilometers
+    area_km2 = gdf_projected.area.values[0] / 1_000_000
     
     return area_km2
 
