@@ -1,0 +1,411 @@
+/* Enhanced custom styles */
+
+/* Body and general styles */
+body {
+    min-height: 100vh;
+    background-color: #121212;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navbar enhancements */
+.navbar {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(90deg, #1a1a1a, #292929) !important;
+    padding: 0.7rem 1rem;
+}
+
+.navbar-brand {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.navbar-brand i {
+    color: #5cb85c;
+}
+
+.nav-link:hover {
+    color: #38b5ff !important;
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+/* Map styles */
+.leaflet-container {
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-control-zoom a {
+    color: #e0e0e0;
+    background-color: #343a40;
+    border-color: #495057;
+    transition: all 0.3s ease;
+}
+
+.leaflet-control-zoom a:hover {
+    background-color: #495057;
+    transform: scale(1.05);
+}
+
+.leaflet-control-layers {
+    color: #e0e0e0;
+    background-color: #343a40;
+    border-color: #495057;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-control-attribution {
+    color: #e0e0e0;
+    background-color: rgba(52, 58, 64, 0.8) !important;
+    font-size: 0.7rem;
+}
+
+.leaflet-control-layers-toggle {
+    background-color: #343a40;
+}
+
+.leaflet-popup-content-wrapper, 
+.leaflet-popup-tip {
+    background-color: #2d3238;
+    color: #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+/* Map container enhancements */
+#map-container {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+#map {
+    border-radius: 12px;
+}
+
+/* Button styles */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 0.5rem 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4e73df, #2e59d9);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2e59d9, #4e73df);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(46, 89, 217, 0.4);
+}
+
+.btn-outline-primary {
+    border-color: #4e73df;
+    color: #4e73df;
+}
+
+.btn-outline-primary:hover {
+    background-color: #4e73df;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-outline-info {
+    border-color: #17a2b8;
+    color: #17a2b8;
+}
+
+.btn-outline-info:hover {
+    background-color: #17a2b8;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-outline-secondary {
+    border-color: #6c757d;
+    color: #adb5bd;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Geocoder search styles */
+.leaflet-control-geocoder {
+    background-color: #2d3238;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.leaflet-control-geocoder:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.leaflet-control-geocoder-form input {
+    background-color: #212529;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.leaflet-control-geocoder-form input:focus {
+    border-color: #38b5ff;
+    box-shadow: 0 0 0 2px rgba(56, 181, 255, 0.25);
+    outline: none;
+}
+
+.leaflet-control-geocoder-form input::placeholder {
+    color: #adb5bd;
+    font-style: italic;
+}
+
+.leaflet-control-geocoder-alternatives {
+    background-color: #2d3238;
+    color: #e0e0e0;
+    border: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-control-geocoder-alternatives li {
+    padding: 8px 12px;
+    border-top: 1px solid #444;
+    transition: all 0.2s ease;
+}
+
+.leaflet-control-geocoder-alternatives li:hover, 
+.leaflet-control-geocoder-alternatives li.leaflet-control-geocoder-selected {
+    background-color: #38b5ff25;
+    color: #fff;
+}
+
+/* Custom scrollbar for geocoder results */
+.leaflet-control-geocoder-alternatives::-webkit-scrollbar {
+    width: 8px;
+}
+
+.leaflet-control-geocoder-alternatives::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.leaflet-control-geocoder-alternatives::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+.leaflet-control-geocoder-alternatives::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Dashboard styles */
+.card {
+    background-color: #2d3238;
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #292929, #1a1a1a);
+    color: #e0e0e0;
+    border-bottom: 1px solid #333;
+    padding: 1rem;
+    font-weight: 600;
+}
+
+.card-body {
+    background-color: #2d3238;
+    padding: 1.25rem;
+}
+
+.table {
+    color: #e0e0e0;
+    margin-bottom: 0;
+}
+
+.table thead th {
+    border-top: none;
+    border-bottom: 2px solid #38b5ff;
+    color: #ccc;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(56, 181, 255, 0.1);
+}
+
+/* Custom alert styles */
+.alert-floating {
+    max-width: 90%;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Stats card */
+.stat-value {
+    color: #38b5ff;
+    font-size: 1.7rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #aaa;
+    font-weight: 500;
+}
+
+.p-3.border.rounded {
+    border-color: #333 !important;
+    background: linear-gradient(135deg, #292929, #1d1d1d);
+    transition: all 0.3s ease;
+}
+
+.p-3.border.rounded:hover {
+    background: linear-gradient(135deg, #323232, #252525);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Modal styling */
+.modal-content {
+    background-color: #2d3238;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #292929, #1a1a1a);
+    border-bottom: 1px solid #333;
+    border-radius: 10px 10px 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid #333;
+    border-radius: 0 0 10px 10px;
+}
+
+.modal-title {
+    color: #e0e0e0;
+    font-weight: 600;
+}
+
+/* Spinner styling */
+.spinner-container {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    border-radius: 15px;
+    padding: 25px;
+}
+
+/* Custom scrollbar for the whole page */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #38b5ff40;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #38b5ff60;
+}
+
+/* Animation effects */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card, .stat-value, .alert, .btn, .navbar-brand, .p-3.border.rounded {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Input field styling */
+input.form-control, select.form-control, textarea.form-control {
+    background-color: #212529;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+}
+
+input.form-control:focus, select.form-control:focus, textarea.form-control:focus {
+    border-color: #38b5ff;
+    box-shadow: 0 0 0 3px rgba(56, 181, 255, 0.25);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #ccc;
+    margin-bottom: 0.5rem;
+}
+
+.form-text {
+    color: #adb5bd;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    #map-container {
+        height: 50vh;
+    }
+    
+    #dashboard {
+        height: auto;
+        max-height: none;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .card-header {
+        padding: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .stat-value {
+        font-size: 1.4rem;
+    }
+}
