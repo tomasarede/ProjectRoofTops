@@ -21,7 +21,7 @@ function initMap(bounds) {
         center: { lat: (bounds.north + bounds.south) / 2, lng: (bounds.east + bounds.west) / 2 },
         zoom: 7,
         minZoom: 3,
-        maxZoom: 22,
+        maxZoom: 22, /* I think is enough for the identification of the rooftops */
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         mapTypeControl: true,
         mapTypeControlOptions: {
@@ -34,9 +34,10 @@ function initMap(bounds) {
             ]
         },
         streetViewControl: false,
-        fullscreenControl: true,
+        fullscreenControl: true, /* makes sense? Ask joao e diogo */
         styles: [
-            // Dark theme styles
+            // Dark theme styles ou Light??? Como preferem?
+
             { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
             { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
             { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
@@ -596,7 +597,7 @@ function displayRooftopsOnMap(rooftops) {
     // Clear existing rooftop layers first
     clearRooftopLayers();
     
-    // Define a gradient of colors for better visual distinction
+    // gradient of colors
     const colorGradient = [
         '#4e73df', // Blue
         '#1cc88a', // Green

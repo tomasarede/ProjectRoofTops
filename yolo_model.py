@@ -33,7 +33,7 @@ class YoloModel:
         """Initialize the YOLO model"""
         self.logger = logging.getLogger(__name__)
         self.model_loaded = False
-        self.name = "YOLOv5 Rooftop Detector"
+        self.name = "YOLOv10 Rooftop Detector"
         self.version = "1.0"
         
         # In a real implementation, load the actual YOLO model here

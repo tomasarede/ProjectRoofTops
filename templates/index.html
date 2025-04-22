@@ -195,12 +195,11 @@
                     </div>
                 </div>
                 
-                <!-- Advanced Analytics button removed from here and moved into the summary card -->
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
+
 
 <!-- Detailed PV Analytics Modal -->
 <div class="modal fade" id="detailedAnalyticsModal" tabindex="-1" aria-labelledby="detailedAnalyticsModalLabel" aria-hidden="true">
@@ -399,6 +398,8 @@
     </div>
 </div>
 
+{% endblock %}
+
 {% block scripts %}
 <!-- Chart.js (already loaded in base.html) -->
 
@@ -493,7 +494,7 @@
             
             document.getElementById('installationCost').textContent = '€' + analytics.installation_cost.toLocaleString();
             document.getElementById('annualSavings').textContent = '€' + analytics.annual_savings.toLocaleString();
-            document.getElementById('paybackPeriod').textContent = analytics.payback_period.toFixed(1) + ' years';
+            //document.getElementById('paybackPeriod').textContent = analytics.payback_period.toFixed(1) + ' years';
             document.getElementById('lifetimeBenefit').textContent = '€' + analytics.lifetime_benefit.toLocaleString();
             
             document.getElementById('co2Reduction').textContent = analytics.co2_reduction.toLocaleString() + ' kg';

@@ -1,5 +1,3 @@
-/* Enhanced custom styles */
-
 /* Body and general styles */
 body {
     min-height: 100vh;
@@ -10,7 +8,6 @@ body {
     background-attachment: fixed;
 }
 
-/* Navbar enhancements */
 .navbar {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     background: linear-gradient(90deg, #0d1b2a, #1b263b) !important;

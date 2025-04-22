@@ -8,8 +8,6 @@
     <!-- Bootstrap Dark Theme CSS -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     
-    <!-- Google Maps API will be loaded via JavaScript -->
-    
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -91,8 +89,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Google Maps API with drawing tools -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBtgYeEO2QBwzOnw_s8GcHNIpabfS3uVHc&libraries=drawing,places,geometry&v=weekly"></script>
-    
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=drawing,places,geometry&v=weekly">
+    </script>   
     {% block scripts %}{% endblock %}
 </body>
 </html>

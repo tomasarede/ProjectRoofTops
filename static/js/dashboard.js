@@ -1,8 +1,11 @@
 /**
+ * 
  * Initialize the dashboard
  */
+
+
 function initDashboard() {
-    // Add event listeners for the max area input
+    // event listeners for the max area input
     const maxAreaInput = document.getElementById('maxAreaInput');
     maxAreaInput.addEventListener('change', function() {
         // Revalidate the selected area if one exists
@@ -11,13 +14,15 @@ function initDashboard() {
         }
     });
     
-    // Initialize charts with empty data
+    // initialize charts with empty data
     initializeCharts();
 }
 
 /**
+ * 
  * Initialize charts with empty data
  */
+
 function initializeCharts() {
     // Size distribution chart
     const sizeDistCtx = document.getElementById('sizeDistChart').getContext('2d');
