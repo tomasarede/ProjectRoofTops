@@ -1,572 +1,238 @@
-{% extends 'base.html' %}
-
-{% block head %}
-    <style>
-        #map-container {
-            height: calc(100vh - 100px);
-            position: relative;
-        }
-        #map {
-            height: 100%;
-            z-index: 1;
-        }
-        #dashboard {
-            height: calc(100vh - 100px);
-            overflow-y: auto;
-        }
-        /* Google Maps drawing toolbar styling */
-        .gm-style .gm-style-mtc button {
-            background-color: #212529;
-        }
-        .alert-floating {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            min-width: 300px;
-        }
-        .chart-container {
-            position: relative;
-            height: 250px;
-            width: 100%;
-        }
-        .dashboard-card {
-            margin-bottom: 1rem;
-        }
-        #area-selector-card {
-            margin-bottom: 1rem;
-        }
-        .card-header {
-            font-weight: bold;
-        }
-        .spinner-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1000;
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-            display: none;
-        }
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--bs-secondary-color);
-        }
-    </style>
-{% endblock %}
-
-{% block content %}
-<div class="row g-3">
-    <!-- Map Column -->
-    <div class="col-lg-8">
-        <div id="map-container" class="card">
-            <div id="map"></div>
-            
-            <!-- Loading Spinner -->
-            <div class="spinner-container" id="loadingSpinner">
-                <div class="d-flex flex-column align-items-center">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="text-white mb-0">Processing area...</p>
-                </div>
-            </div>
-            
-            <!-- Alerts -->
-            <div id="alertContainer" class="alert-floating d-none">
-                <div class="alert alert-danger alert-dismissible fade show" role="alert" id="alertMessage">
-                    <span id="alertText"></span>
-                    <button type="button" class="btn-close" aria-label="Close" id="alertClose"></button>
-                </div>
-            </div>
-        </div>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RoofTop Analysis</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom Styles -->
+  <link href="/static/css/style.css" rel="stylesheet">
+  <!-- Google Maps API -->
+  <script defer src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places"></script>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <a class="navbar-brand text-light" href="#">
+        <i class="bi bi-building"></i>RoofTop Analysis
+      </a>
+      <div class="d-flex align-items-center">
+        <button class="btn btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#infoModal">
+          <i class="bi bi-info-circle me-1"></i>Info
+        </button>
+      </div>
     </div>
-    
-    <!-- Dashboard Column -->
-    <div class="col-lg-4">
-        <div id="dashboard">
-            <!-- Area Selection Card -->
-            <div class="card dashboard-card" id="area-selector-card">
-                <div class="card-header bg-dark">
-                    <i class="fas fa-draw-polygon me-2"></i> Area Selection
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Use the drawing tools on the map to select an area for analysis.</p>
-                    
-                    <div class="mb-3">
-                        <label for="maxAreaInput" class="form-label">Maximum Area Size (km²)</label>
-                        <input type="number" class="form-control" id="maxAreaInput" value="20" min="1" max="100">
-                        <div class="form-text">Maximum area allowed for analysis.</div>
-                    </div>
-                    
-                    <div class="d-grid gap-2">
-                        <button id="analyzeBtn" class="btn btn-primary" disabled>
-                            <i class="fas fa-search me-2"></i> Analyze Area
-                        </button>
-                        <button id="clearBtn" class="btn btn-outline-secondary">
-                            <i class="fas fa-trash-alt me-2"></i> Clear Selection
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Results Cards (initially hidden) -->
-            <div id="results-container" style="display:none;">
-                <!-- Summary Card -->
-                <div class="card dashboard-card">
-                    <div class="card-header bg-dark">
-                        <i class="fas fa-chart-pie me-2"></i> Analysis Summary
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <div class="p-3 border rounded text-center">
-                                    <div class="stat-value" id="rooftopCount">0</div>
-                                    <div class="stat-label">Rooftops Found</div>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="p-3 border rounded text-center">
-                                    <div class="stat-value" id="totalArea">0</div>
-                                    <div class="stat-label">Total Area (m²)</div>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="p-3 border rounded text-center">
-                                    <div class="stat-value" id="avgSize">0</div>
-                                    <div class="stat-label">Avg. Size (m²)</div>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="p-3 border rounded text-center">
-                                    <div class="stat-value" id="potentialCapacity">0</div>
-                                    <div class="stat-label">Potential (kW)</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <button id="showDetailedAnalyticsBtn" class="btn btn-primary w-100 action-btn" data-bs-toggle="modal" data-bs-target="#detailedAnalyticsModal">
-                                <i class="fas fa-solar-panel me-2"></i> View Detailed PV Analytics
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Size Distribution Card -->
-                <div class="card dashboard-card">
-                    <div class="card-header bg-dark">
-                        <i class="fas fa-chart-bar me-2"></i> Size Distribution
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="sizeDistChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Rooftops Table Card -->
-                <div class="card dashboard-card">
-                    <div class="card-header bg-dark">
-                        <i class="fas fa-table me-2"></i> Detected Rooftops
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center">#</th>
-                                        <th>Area (m²)</th>
-                                        <th>Confidence</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="rooftopsTable">
-                                    <!-- Rooftops will be added here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
+  </nav>
+
+  <div class="container-app">
+    <!-- Map Panel -->
+    <div class="map-container panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="bi bi-map"></i>Satellite View
         </div>
-    </div>
-</div>
-
-
-<!-- Detailed PV Analytics Modal -->
-<div class="modal fade" id="detailedAnalyticsModal" tabindex="-1" aria-labelledby="detailedAnalyticsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="detailedAnalyticsModalLabel">Detailed PV Analytics</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Loading Spinner -->
-                <div id="detailedAnalyticsLoader" class="text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p>Loading detailed PV analytics...</p>
-                </div>
-                
-                <!-- Error Message -->
-                <div id="detailedAnalyticsError" class="alert alert-danger" style="display: none;"></div>
-                
-                <!-- Content -->
-                <div id="detailedAnalyticsContent" style="display: none;">
-                    <!-- First Row - Energy Production -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="card bg-dark">
-                                <div class="card-header">
-                                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i> Estimated Energy Production</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-8">
-                                            <canvas id="monthlyProductionChart" height="200"></canvas>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="d-flex flex-column justify-content-center h-100">
-                                                <div class="text-center mb-3">
-                                                    <h3 id="annualProductionValue" class="text-success">0</h3>
-                                                    <p class="text-muted mb-0">kWh/year</p>
-                                                    <p class="small">Estimated annual production</p>
-                                                </div>
-                                                <div class="text-center">
-                                                    <h3 id="averageDailyProduction" class="text-info">0</h3>
-                                                    <p class="text-muted mb-0">kWh/day</p>
-                                                    <p class="small">Daily average</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Second Row - Financial Analysis -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="card bg-dark h-100">
-                                <div class="card-header">
-                                    <h6 class="mb-0"><i class="fas fa-euro-sign me-2"></i> Financial Overview</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-dark table-sm">
-                                            <tbody>
-                                                <tr>
-                                                    <td>Estimated installation cost</td>
-                                                    <td class="text-end" id="installationCost">€0</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Annual energy savings</td>
-                                                    <td class="text-end" id="annualSavings">€0</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Payback period</td>
-                                                    <td class="text-end" id="paybackPeriod">0 years</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>25-year financial benefit</td>
-                                                    <td class="text-end" id="lifetimeBenefit">€0</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card bg-dark h-100">
-                                <div class="card-header">
-                                    <h6 class="mb-0"><i class="fas fa-leaf me-2"></i> Environmental Impact</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-dark table-sm">
-                                            <tbody>
-                                                <tr>
-                                                    <td>CO₂ emissions avoided (annual)</td>
-                                                    <td class="text-end" id="co2Reduction">0 kg</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Equivalent trees planted</td>
-                                                    <td class="text-end" id="treesEquivalent">0</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Vehicle emissions equivalent</td>
-                                                    <td class="text-end" id="carEquivalent">0 km</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Fossil fuel saved</td>
-                                                    <td class="text-end" id="fossilFuelSaved">0 kg</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Third Row - System Specifications -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card bg-dark">
-                                <div class="card-header">
-                                    <h6 class="mb-0"><i class="fas fa-cogs me-2"></i> System Specifications</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-dark table-sm">
-                                            <tbody>
-                                                <tr>
-                                                    <td>Recommended PV capacity</td>
-                                                    <td class="text-end" id="recommendedCapacity">0 kWp</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Number of panels (400W)</td>
-                                                    <td class="text-end" id="panelCount">0</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Required roof area</td>
-                                                    <td class="text-end" id="requiredArea">0 m²</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Estimated system efficiency</td>
-                                                    <td class="text-end" id="systemEfficiency">0%</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card bg-dark">
-                                <div class="card-header">
-                                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i> Optimal Configuration</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-dark table-sm">
-                                            <tbody>
-                                                <tr>
-                                                    <td>Optimal panel orientation</td>
-                                                    <td class="text-end">South-facing</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Optimal tilt angle</td>
-                                                    <td class="text-end">33°</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Recommended inverter size</td>
-                                                    <td class="text-end" id="inverterSize">0 kW</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Solar irradiance in area</td>
-                                                    <td class="text-end">1650 kWh/m²/year</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="generateReportBtn">
-                    <i class="fas fa-file-pdf me-2"></i> Generate Report
-                </button>
-            </div>
+        <div class="zoom-level text-muted">
+          <i class="bi bi-zoom-in"></i><span id="zoom-level">Zoom: 5</span>
         </div>
+      </div>
+      <div class="panel-body">
+        <input id="search-input" class="form-control" type="text" placeholder="Search location...">
+        <div id="map"></div>
+        <div id="coords"></div>
+        <button id="printBtn" class="btn-capture" disabled>
+          <i class="bi bi-camera"></i>Capture
+        </button>
+        <div class="zoom-warning" id="zoom-warning">
+          <i class="bi bi-exclamation-triangle-fill"></i>Zoom in to level 19+ to enable capture
+        </div>
+      </div>
     </div>
-</div>
 
-{% endblock %}
+    <!-- Results Panel -->
+    <div class="result-container panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="bi bi-building-check"></i>Rooftop Analysis
+        </div>
+        <div class="detection-status text-muted" id="detection-status">Ready for analysis</div>
+      </div>
+      <div class="panel-body">
+        <div class="result-placeholder" id="result-placeholder">
+          <i class="bi bi-building-fill"></i>
+          <p>Capture an area to analyze rooftops</p>
+          <p class="text-muted small">Zoom to level 19+ and click Capture</p>
+        </div>
+        <img id="resultImg" src="" alt="Analyzed Rooftops">
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="spinner"></div>
+          <p>Analyzing rooftops...</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-{% block scripts %}
-<!-- Chart.js (already loaded in base.html) -->
+  <!-- Information Modal -->
+  <div class="modal fade info-modal" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="infoModalLabel">
+            <i class="bi bi-info-circle me-2 text-primary"></i>Rooftop Analysis Tool
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-item">
+            <span class="list-icon"><i class="bi bi-map-fill"></i></span>
+            <span>Explore satellite imagery with multiple map types (roadmap, hybrid, satellite).</span>
+          </div>
+          <div class="list-item">
+            <span class="list-icon"><i class="bi bi-camera-fill"></i></span>
+            <span>High-resolution snapshot captures at zoom levels greater than or equal to nineteen.</span>
+          </div>
+          <div class="list-item">
+            <span class="list-icon"><i class="bi bi-building-fill-check"></i></span>
+            <span>Real-time empty rooftop detection powered by YOLO version eight.</span>
+          </div>
+          <div class="list-item">
+            <span class="list-icon"><i class="bi bi-search"></i></span>
+            <span>Interactive place search for quick navigation.</span>
+          </div>
+          <div class="list-item">
+            <span class="list-icon"><i class="bi bi-palette-fill"></i></span>
+            <span>Clean, modern dark theme with user-friendly controls.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<!-- Map JS - Google Maps implementation -->
-<script src="{{ url_for('static', filename='js/map_google.js') }}"></script>
+  <!-- Bootstrap JavaScript Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Dashboard JS -->
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  <script>
+    let map;
+    let searchBox;
+    let currentCenter;
+    let currentZoom;
 
-<script>
-    // Initialize the application with Portugal bounds
-    const portugalBounds = {{ portugal_bounds|tojson }};
-    let monthlyProductionChart = null;
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize the map
-        initMap(portugalBounds);
-        
-        // Initialize the dashboard
-        initDashboard();
-        
-        // Set up event listener for detailed analytics modal being shown
-        const detailedAnalyticsModal = document.getElementById('detailedAnalyticsModal');
-        if (detailedAnalyticsModal) {
-            detailedAnalyticsModal.addEventListener('show.bs.modal', function (event) {
-                showDetailedAnalytics();
-            });
+    function initializeMap() {
+      // Create the map centered on Portugal
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: {lat: 39.3999, lng: -8.2245},
+        zoom: 5,
+        mapTypeId: 'roadmap',
+        streetViewControl: false,
+        rotateControl: false,
+        tilt: 0,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+          mapTypeIds: ['roadmap', 'hybrid', 'satellite']
         }
-        
-        // Set up event listener for report generation
-        const generateReportBtn = document.getElementById('generateReportBtn');
-        if (generateReportBtn) {
-            generateReportBtn.addEventListener('click', function() {
-                alert('Report generation would be implemented in a production version.');
-            });
+      });
+  
+
+      // Set up place search
+      const searchInput = document.getElementById('search-input');
+      searchBox = new google.maps.places.SearchBox(searchInput);
+      searchBox.addListener('places_changed', () => {
+        const places = searchBox.getPlaces();
+        if (!places.length) return;
+        const place = places[0];
+        if (!place.geometry) return;
+        map.panTo(place.geometry.location);
+        map.setZoom(15);
+      });
+
+      // UI Elements
+      const captureButton = document.getElementById('printBtn');
+      const zoomWarningElement = document.getElementById('zoom-warning');
+      const zoomLevelElement = document.getElementById('zoom-level');
+      const coordinatesElement = document.getElementById('coords');
+      const resultImage = document.getElementById('resultImg');
+      const resultPlaceholder = document.getElementById('result-placeholder');
+      const loadingOverlay = document.getElementById('loading-overlay');
+      const detectionStatus = document.getElementById('detection-status');
+
+      // Update map state on idle
+      map.addListener('idle', () => {
+        currentCenter = map.getCenter();
+        currentZoom = map.getZoom();
+
+        zoomLevelElement.textContent = `Zoom: ${currentZoom}`;
+        coordinatesElement.textContent = `Lat: ${currentCenter.lat().toFixed(5)} | Lng: ${currentCenter.lng().toFixed(5)}`;
+
+        if (currentZoom >= 19) {
+          captureButton.disabled = false;
+          zoomWarningElement.classList.remove('show');
+          detectionStatus.textContent = "Ready for analysis";
+          detectionStatus.classList.replace('text-danger', 'text-muted');
+        } else {
+          captureButton.disabled = true;
+          zoomWarningElement.classList.add('show');
+          detectionStatus.textContent = "Zoom required";
+          detectionStatus.classList.replace('text-muted', 'text-danger');
         }
-    });
-    
-    function showDetailedAnalytics() {
-        // Check if there are analysis results
-        if (!selectedArea || document.getElementById('results-container').style.display === 'none') {
-            showAlert('Please analyze an area first to view detailed analytics.');
-            return;
-        }
-        
-        // Show loading spinner in modal
-        document.getElementById('detailedAnalyticsLoader').style.display = 'block';
-        document.getElementById('detailedAnalyticsContent').style.display = 'none';
-        document.getElementById('detailedAnalyticsError').style.display = 'none';
-        
-        // Modal is already being shown by the data-bs-toggle attribute
-        
-        // Get data from the results
-        const capacity = parseFloat(document.getElementById('potentialCapacity').textContent);
-        const rooftopCount = parseInt(document.getElementById('rooftopCount').textContent);
-        const totalArea = parseFloat(document.getElementById('totalArea').textContent);
-        
-        // Send data to server for detailed calculations
-        fetch('/api/pv_analytics', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                capacity: capacity,
-                rooftop_count: rooftopCount,
-                total_area: totalArea
-            })
+      });
+
+      // Handle capture click
+      captureButton.addEventListener('click', () => {
+        if (!currentCenter || currentZoom < 19) return;
+
+        loadingOverlay.classList.add('active');
+        detectionStatus.textContent = "Analyzing...";
+        detectionStatus.classList.replace('text-muted', 'text-primary');
+
+        resultPlaceholder.style.display = 'none';
+
+        fetch('/capture', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            lat: currentCenter.lat(),
+            lng: currentCenter.lng(),
+            zoom: currentZoom,
+            size: '600x400'
+          })
         })
         .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+          if (!response.ok) throw new Error('Capture failed');
+          return response.blob();
         })
-        .then(data => {
-            if (data.error) {
-                document.getElementById('detailedAnalyticsLoader').style.display = 'none';
-                document.getElementById('detailedAnalyticsError').style.display = 'block';
-                document.getElementById('detailedAnalyticsError').textContent = data.error;
-                return;
-            }
-            
-            const analytics = data.analytics;
-            
-            // Update the values in the modal
-            document.getElementById('recommendedCapacity').textContent = analytics.capacity.toFixed(1) + ' kWp';
-            document.getElementById('panelCount').textContent = analytics.panel_count;
-            document.getElementById('requiredArea').textContent = analytics.total_area.toFixed(1) + ' m²';
-            document.getElementById('systemEfficiency').textContent = analytics.system_efficiency + '%';
-            document.getElementById('inverterSize').textContent = analytics.inverter_size.toFixed(1) + ' kW';
-            
-            document.getElementById('installationCost').textContent = '€' + analytics.installation_cost.toLocaleString();
-            document.getElementById('annualSavings').textContent = '€' + analytics.annual_savings.toLocaleString();
-            //document.getElementById('paybackPeriod').textContent = analytics.payback_period.toFixed(1) + ' years';
-            document.getElementById('lifetimeBenefit').textContent = '€' + analytics.lifetime_benefit.toLocaleString();
-            
-            document.getElementById('co2Reduction').textContent = analytics.co2_reduction.toLocaleString() + ' kg';
-            document.getElementById('treesEquivalent').textContent = analytics.trees_equivalent.toLocaleString();
-            document.getElementById('carEquivalent').textContent = analytics.car_equivalent.toLocaleString() + ' km';
-            document.getElementById('fossilFuelSaved').textContent = analytics.fossil_fuel_saved.toLocaleString() + ' kg';
-            
-            document.getElementById('annualProductionValue').textContent = analytics.annual_production.toLocaleString();
-            document.getElementById('averageDailyProduction').textContent = analytics.daily_production.toLocaleString();
-            
-            // Create monthly production chart
-            createMonthlyProductionChart(analytics.monthly_production);
-            
-            // Hide loader and show content
-            document.getElementById('detailedAnalyticsLoader').style.display = 'none';
-            document.getElementById('detailedAnalyticsContent').style.display = 'block';
+        .then(blob => {
+          loadingOverlay.classList.remove('active');
+          resultImage.src = URL.createObjectURL(blob);
+          resultImage.style.display = 'block';
+          detectionStatus.textContent = "Analysis complete";
+          detectionStatus.classList.replace('text-primary', 'text-success');
         })
         .catch(error => {
-            console.error('Error fetching PV analytics:', error);
-            document.getElementById('detailedAnalyticsLoader').style.display = 'none';
-            document.getElementById('detailedAnalyticsError').style.display = 'block';
-            document.getElementById('detailedAnalyticsError').textContent = 'Error loading analytics: ' + error.message;
+          console.error(error);
+          loadingOverlay.classList.remove('active');
+          detectionStatus.textContent = "Analysis failed";
+          detectionStatus.classList.replace('text-primary', 'text-danger');
+          resultPlaceholder.style.display = 'flex';
+          resultPlaceholder.innerHTML = `
+            <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+            <p>Failed to analyze rooftops</p>
+            <p class="text-muted small">Please try again or select a different area</p>
+          `;
         });
+      });
+
     }
-    
-    function createMonthlyProductionChart(monthlyProduction) {
-        // Month labels
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-        // Get the chart canvas
-        const ctx = document.getElementById('monthlyProductionChart').getContext('2d');
-        
-        // Destroy previous chart if it exists
-        if (monthlyProductionChart) {
-            monthlyProductionChart.destroy();
-        }
-        
-        // Create the chart
-        monthlyProductionChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: months,
-                datasets: [{
-                    label: 'Monthly Energy Production (kWh)',
-                    data: monthlyProduction,
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Energy (kWh)'
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-    }
-</script>
-{% endblock %}
+
+    document.addEventListener('DOMContentLoaded', initializeMap);
+  </script>
+</body>
+</html>
