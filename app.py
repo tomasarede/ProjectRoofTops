@@ -10,13 +10,20 @@ import numpy as np
 import geopandas as gpd
 from ultralytics import YOLO
 
+from pvlib.pvsystem import PVSystem
+from pvlib.location import Location
+from pvlib import temperature
+from pvlib.temperature import sapm_cell, TEMPERATURE_MODEL_PARAMETERS
+import pandas as pd
+import time
+
 # Load environment variables from .env
 load_dotenv()
 
 # ––––– CONFIGURATION –––––
 GOOGLE_STATIC_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap"
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-MODEL_PATH = "/Users/tomasarede/Desktop/arede/Projetos/ProjectRoofTops/models/best_rooftop_model.pt"
+MODEL_PATH = "/Users/joaosantos/Documents/MEFT/P3/SE/Project3/ProjectRoofTops/models/best_rooftop_model.pt"
 
 # Ensure output directories exist
 os.makedirs("static/prints", exist_ok=True)
@@ -37,6 +44,9 @@ def index():
 
 @app.route("/capture", methods=["POST"])
 def capture():
+    import sys
+    print("Python path:", sys.executable)
+
     """
     Given center coordinates and zoom, fetch a Static Maps image,
     run YOLOv8 inference (conf >= 0.5), draw aesthetic boxes and labels,
@@ -79,7 +89,8 @@ def capture():
         results = model.predict(source=image, conf=0.3)[0]
         accent = (77, 157, 224)  
 
-        for box in results.boxes:
+        rooftop_data = []
+        for i, box in enumerate(results.boxes):
             x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
             conf = float(box.conf[0])
             if conf < 0.3:
@@ -117,11 +128,81 @@ def capture():
                 lineType=cv2.LINE_AA,
             )
 
+            # Draw rooftop number label (e.g., Rooftop #1)
+            label_text = f"#{i + 1}"
+            cv2.putText(
+                image,
+                label_text,
+                (x1 + 5, y1 + 25),  # position slightly inside the box
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.9,
+                (255, 255, 255),  # white text
+                2,
+                lineType=cv2.LINE_AA
+            )
+
+            # Approximate rooftop area in m² (based on zoom level)
+            if zoom == 19:
+                meters_per_pixel = 0.149
+            elif zoom >= 20:
+                meters_per_pixel = 0.075
+            width = (x2 - x1) * meters_per_pixel
+            height = (y2 - y1) * meters_per_pixel
+            area_m2 = width * height
+
+            panel_area_m2 = 1.8
+            num_modules = int(area_m2 / panel_area_m2)
+
+           # PVLIB simulation (basic setup)
+
+            site = Location(latitude=lat, longitude=lng)
+
+            system = PVSystem(
+                surface_tilt=30, surface_azimuth=180,
+                module_parameters={'pdc0': 300, 'gamma_pdc': -0.003},
+                inverter_parameters={'pdc0': 290}
+            )
+
+            times = pd.date_range("2024-06-01", periods=8760, freq="h", tz="UTC")
+            weather = site.get_clearsky(times)
+            # Choose the correct mounting type
+            params = TEMPERATURE_MODEL_PARAMETERS['sapm']['open_rack_glass_glass']
+
+            # Compute module cell temperatures using the Sandia model
+            temps = sapm_cell(
+                poa_global=weather['ghi'],
+                temp_air=25,
+                wind_speed=1,
+                **params
+            )
+
+            # Use the cell temps in your DC → AC power calculation
+            dc = system.pvwatts_dc(weather['ghi'], temps)
+            ac = np.minimum(dc, system.inverter_parameters['pdc0'])
+            kwh_per_module = float(ac.sum()) / 1000
+            kwh_total = round(kwh_per_module * num_modules, 2)
+
+            rooftop_data.append({
+                "box": [x1, y1, x2, y2],
+                "confidence": round(conf, 2),
+                "area_m2": round(area_m2, 2),
+                "modules": num_modules,
+                "kwh_per_year": kwh_total
+            })
+
+
+
         annotated_path = "static/results/annotated.png"
         cv2.imwrite(annotated_path, image)
-        return send_file(annotated_path, mimetype="image/png")
+        return jsonify({
+            "image_path": f"/static/results/annotated.png?ts={int(time.time())}",
+            "rooftop_data": rooftop_data
+        })
+
+
 
     except Exception as e:
+        print("Error in /capture:", str(e))
         return jsonify({"error": str(e)}), 500
 
 
