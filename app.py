@@ -23,7 +23,7 @@ load_dotenv()
 # ––––– CONFIGURATION –––––
 GOOGLE_STATIC_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap"
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-MODEL_PATH = "/Users/joaosantos/Documents/MEFT/P3/SE/Project3/ProjectRoofTops/models/best_rooftop_model.pt"
+MODEL_PATH = "C:/Diogo/EnServ/Project3/ProjectRoofTops/models/best_rooftop_model.pt"
 
 # Ensure output directories exist
 os.makedirs("static/prints", exist_ok=True)

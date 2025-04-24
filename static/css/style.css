@@ -61,7 +61,13 @@
   }
   
   /* Panels */
-  .map-container,
+  .map-container {
+    width: 500px;   /* Set your preferred width */
+    height: 500px;  /* Set your preferred height */
+    overflow: hidden; /* Prevent it from expanding with content */
+    flex-shrink: 0;   /* Prevent it from shrinking in flexbox layouts */
+  }
+
   .result-container {
     flex: 1 1 100%;
     display: flex;
