@@ -163,7 +163,9 @@ def capture():
                 inverter_parameters={'pdc0': 290}
             )
 
-            times = pd.date_range("2024-06-01", periods=8760, freq="h", tz="UTC")
+            timezone = site.tz
+            times = pd.date_range("2024-01-01", periods=8760, freq="h", tz=timezone)
+            weather = site.get_clearsky(times)
             weather = site.get_clearsky(times)
             # Choose the correct mounting type
             params = TEMPERATURE_MODEL_PARAMETERS['sapm']['open_rack_glass_glass']
@@ -182,12 +184,18 @@ def capture():
             kwh_per_module = float(ac.sum()) / 1000
             kwh_total = round(kwh_per_module * num_modules, 2)
 
+            # Calcular produção mensal real a partir da série temporal AC
+            ac_series = pd.Series(ac, index=times)
+            monthly_ac = ac_series.resample('M').sum()  # soma mensal
+            monthly_kwh = [round(val / 1000 * num_modules, 2) for val in monthly_ac]
+
             rooftop_data.append({
                 "box": [x1, y1, x2, y2],
                 "confidence": round(conf, 2),
                 "area_m2": round(area_m2, 2),
                 "modules": num_modules,
-                "kwh_per_year": kwh_total
+                "kwh_per_year": kwh_total,
+                "monthly_kwh": monthly_kwh
             })
 
 

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RoofTop Analysis</title>
@@ -70,6 +71,10 @@
         </div>
         <img id="resultImg" src="" alt="Analyzed Rooftops">
         <div id="rooftop-data-summary" class="mt-3"></div>
+        <select id="rooftop-select" class="form-select mt-3" style="display: none;">
+          <option value="">Select a rooftop to view details</option>
+        </select>
+        <canvas id="powerChart" style="margin-top: 20px;"></canvas>
         <div class="loading-overlay" id="loading-overlay">
           <div class="spinner"></div>
           <p>Analyzing rooftops...</p>
@@ -131,7 +136,7 @@
       map = new google.maps.Map(document.getElementById('map'), {
         center: {lat: 39.3999, lng: -8.2245},
         zoom: 5,
-        mapTypeId: 'roadmap',
+        mapTypeId: 'satellite',
         streetViewControl: false,
         rotateControl: false,
         tilt: 0,
@@ -239,9 +244,17 @@
 
     document.addEventListener('DOMContentLoaded', initializeMap);
 
+    let powerChart; // Declare chart variable globally
+
     function displayRooftopData(rooftops) {
       const summaryContainer = document.getElementById('rooftop-data-summary');
-      summaryContainer.innerHTML = ""; // Clear it
+      const chartCanvas = document.getElementById('powerChart');
+      const select = document.getElementById('rooftop-select');
+
+      summaryContainer.innerHTML = ""; 
+      chartCanvas.style.display = 'none'; 
+      select.innerHTML = '<option value="">Select a rooftop to view details</option>';
+      select.style.display = rooftops.length > 0 ? 'block' : 'none';
 
       if (!rooftops.length) {
         summaryContainer.innerHTML = "<p>No rooftops detected.</p>";
@@ -249,19 +262,31 @@
       }
 
       let totalKwh = 0;
+      const monthlyTotals = new Array(12).fill(0);
       const list = document.createElement('ul');
       list.className = "list-group";
 
       rooftops.forEach((roof, i) => {
         totalKwh += roof.kwh_per_year;
+
+        roof.monthly_kwh.forEach((kwh, idx) => {
+          monthlyTotals[idx] += kwh;
+        });
+
         const item = document.createElement('li');
         item.className = "list-group-item bg-dark text-light border-light";
         item.innerHTML = `
           <strong>Rooftop #${i + 1}</strong><br>
           Area: ${roof.area_m2} m²<br>
-          Solar Output: ${roof.kwh_per_year} kWh_total
+          Solar Output: ${roof.kwh_per_year} kWh/year
         `;
         list.appendChild(item);
+
+        // Add rooftop to dropdown
+        const option = document.createElement('option');
+        option.value = i;
+        option.text = `Rooftop #${i + 1}`;
+        select.appendChild(option);
       });
 
       const summary = document.createElement('p');
@@ -270,7 +295,75 @@
 
       summaryContainer.appendChild(summary);
       summaryContainer.appendChild(list);
+
+      // Show total chart by default
+      generatePowerChart(monthlyTotals);
+
+      // Add dropdown event listener
+      select.addEventListener('change', (event) => {
+        const idx = event.target.value;
+        if (idx !== "") {
+          generatePowerChart(rooftops[idx].monthly_kwh);
+        } else {
+          generatePowerChart(monthlyTotals); // fallback to total
+        }
+      });
     }
+
+  function generatePowerChart(monthlyData) {
+    const ctx = document.getElementById('powerChart').getContext('2d');
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    if (powerChart) {
+      powerChart.destroy();
+    }
+
+    powerChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Expected Power Output (kWh)',
+          data: monthlyData,
+          borderColor: 'rgba(0, 123, 255, 1)',
+          backgroundColor: 'rgba(0, 123, 255, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: 'white',
+          pointBorderColor: 'blue'
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'kWh'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Month'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: 'white'
+            }
+          }
+        }
+      }
+    });
+
+    document.getElementById('powerChart').style.display = 'block';
+  }
 
   </script>
 </body>
