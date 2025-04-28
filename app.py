@@ -20,10 +20,17 @@ import time
 # Load environment variables from .env
 load_dotenv()
 
+# PV System Constants
+PV_PANEL_COST_PER_KW = 850  # Cost in $ per kW of installed capacity
+PV_PANEL_EFFICIENCY = 0.19  # Panel efficiency (19%)
+ELECTRICITY_COST_PER_KWH = 0.14  # Average electricity cost per kWh
+CO2_PER_KWH = 0.4  # kg of CO2 per kWh of grid electricity
+PANEL_POWER_RATING_W = 300  # Watts per panel
+
 # ––––– CONFIGURATION –––––
 GOOGLE_STATIC_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap"
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-MODEL_PATH = "C:/Diogo/EnServ/Project3/ProjectRoofTops/models/best_rooftop_model.pt"
+MODEL_PATH = "/Users/tomasarede/Desktop/ProjectRoofTops/models/best_rooftop_model.pt"
 
 # Ensure output directories exist
 os.makedirs("static/prints", exist_ok=True)
@@ -49,7 +56,7 @@ def capture():
 
     """
     Given center coordinates and zoom, fetch a Static Maps image,
-    run YOLOv8 inference (conf >= 0.5), draw aesthetic boxes and labels,
+    run YOLOv8 inference (conf >= 0.3), draw aesthetic boxes and labels,
     and return the annotated PNG.
     """
     data = request.get_json()
@@ -67,6 +74,7 @@ def capture():
         "size": size,
         "maptype": "hybrid",
         "key": API_KEY,
+        "style": "feature:all|element:labels|visibility:off"
     }
 
     try:
@@ -93,8 +101,7 @@ def capture():
         for i, box in enumerate(results.boxes):
             x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
             conf = float(box.conf[0])
-            if conf < 0.3:
-                continue
+            
 
             # semi-transparent fill
             overlay = image.copy()
@@ -153,21 +160,18 @@ def capture():
             panel_area_m2 = 1.8
             num_modules = int(area_m2 / panel_area_m2)
 
-           # PVLIB simulation (basic setup)
-
+            # PVLIB simulation (basic setup)
             site = Location(latitude=lat, longitude=lng)
 
             system = PVSystem(
                 surface_tilt=30, surface_azimuth=180,
-                module_parameters={'pdc0': 300, 'gamma_pdc': -0.003},
-                inverter_parameters={'pdc0': 290}
+                module_parameters={'pdc0': PANEL_POWER_RATING_W, 'gamma_pdc': -0.003},
+                inverter_parameters={'pdc0': PANEL_POWER_RATING_W * 0.97}  # Inverter typically sized at 97% of panel capacity
             )
 
             timezone = site.tz
             times = pd.date_range("2024-01-01", periods=8760, freq="h", tz=timezone)
             weather = site.get_clearsky(times)
-            weather = site.get_clearsky(times)
-            # Choose the correct mounting type
             params = TEMPERATURE_MODEL_PARAMETERS['sapm']['open_rack_glass_glass']
 
             # Compute module cell temperatures using the Sandia model
@@ -184,10 +188,24 @@ def capture():
             kwh_per_module = float(ac.sum()) / 1000
             kwh_total = round(kwh_per_module * num_modules, 2)
 
-            # Calcular produção mensal real a partir da série temporal AC
+            # Calculate monthly production
             ac_series = pd.Series(ac, index=times)
-            monthly_ac = ac_series.resample('M').sum()  # soma mensal
+            monthly_ac = ac_series.resample('ME').sum()  # monthly sum
             monthly_kwh = [round(val / 1000 * num_modules, 2) for val in monthly_ac]
+
+    
+            # CO2 Savings
+            annual_co2_savings_kg = kwh_total * CO2_PER_KWH
+            
+            # Installation Cost
+            total_capacity_kw = (PANEL_POWER_RATING_W * num_modules) / 1000
+            installation_cost = total_capacity_kw * PV_PANEL_COST_PER_KW
+            
+            # Annual Financial Savings
+            annual_financial_savings = kwh_total * ELECTRICITY_COST_PER_KWH
+            
+            # ROI Period 
+            roi_years = installation_cost / annual_financial_savings if annual_financial_savings > 0 else float('inf')
 
             rooftop_data.append({
                 "box": [x1, y1, x2, y2],
@@ -195,10 +213,13 @@ def capture():
                 "area_m2": round(area_m2, 2),
                 "modules": num_modules,
                 "kwh_per_year": kwh_total,
-                "monthly_kwh": monthly_kwh
+                "monthly_kwh": monthly_kwh,
+                "co2_savings_kg": round(annual_co2_savings_kg, 2),
+                "installation_cost": round(installation_cost, 2),
+                "annual_savings": round(annual_financial_savings, 2),
+                "roi_years": round(roi_years, 1),
+                "capacity_kw": round(total_capacity_kw, 2)
             })
-
-
 
         annotated_path = "static/results/annotated.png"
         cv2.imwrite(annotated_path, image)
@@ -207,12 +228,9 @@ def capture():
             "rooftop_data": rooftop_data
         })
 
-
-
     except Exception as e:
         print("Error in /capture:", str(e))
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
