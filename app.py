@@ -38,7 +38,7 @@ PANEL_POWER_RATING_W = 400  # Watts per panel
 # ––––– CONFIGURATION –––––
 GOOGLE_STATIC_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap"
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-MODEL_PATH = "/Users/tomasarede/Desktop/ProjectRoofTops/models/best_rooftop_model.pt"
+MODEL_PATH = "models/best_rooftop_model.pt"
 
 # Ensure output directories exist
 os.makedirs("static/prints", exist_ok=True)
