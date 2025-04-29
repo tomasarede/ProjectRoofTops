@@ -1,3 +1,11 @@
+/*
+Energy Services Course - IST - April 2025
+
+Diogo Franco ist1103276
+João Santos ist1103243
+Tomás Arêde ist1103239
+*/
+
 let map;
 let searchBox;
 let currentCenter;
@@ -144,7 +152,6 @@ function displaySummaryData(rooftops) {
   let totalCO2Savings = 0;
   let totalCost = 0;
   let totalAnnualSavings = 0;
-  let validRooftops = 0;
   
   rooftops.forEach(roof => {
     totalCapacity += roof.capacity_kw;
@@ -152,16 +159,7 @@ function displaySummaryData(rooftops) {
     totalCO2Savings += roof.co2_savings_kg;
     totalCost += roof.installation_cost;
     totalAnnualSavings += roof.annual_savings;
-    
-    if (roof.roi_years !== Infinity) {
-      validRooftops++;
-    }
   });
-  
-  // Calculate average ROI (only for rooftops with valid ROI)
-  const avgROI = validRooftops > 0 ? 
-    (totalCost / totalAnnualSavings).toFixed(1) : 
-    'N/A';
   
   // Update UI
   document.getElementById('total-capacity').textContent = totalCapacity.toFixed(2) + ' kW';
@@ -169,7 +167,6 @@ function displaySummaryData(rooftops) {
   document.getElementById('total-co2-savings').textContent = formatNumber(totalCO2Savings) + ' kg';
   document.getElementById('total-cost').textContent = '$' + formatNumber(totalCost);
   document.getElementById('total-annual-savings').textContent = '$' + formatNumber(totalAnnualSavings);
-  document.getElementById('average-roi').textContent = avgROI + ' years';
   
   // Show the summary card
   totalSummaryCard.style.display = 'block';
@@ -220,7 +217,6 @@ function displayRooftopDetail(rooftop, index) {
   document.getElementById('rooftop-annual-output').textContent = `${formatNumber(rooftop.kwh_per_year)} kWh`;
   document.getElementById('rooftop-co2-savings').textContent = `${formatNumber(rooftop.co2_savings_kg)} kg`;
   document.getElementById('rooftop-cost').textContent = `$${formatNumber(rooftop.installation_cost)}`;
-  document.getElementById('rooftop-roi').textContent = `${rooftop.roi_years} years`;
   
   // Generate charts
   generatePowerChart(rooftop.monthly_kwh);
@@ -361,6 +357,80 @@ function generatePowerChart(monthlyData) {
     }
   });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  
+  // Mapping of metric ID to hardcoded explanation (your provided details)
+  const calculationExplanations = {
+    'total-capacity': `
+      <h6><i class="bi bi-lightning"></i> Total Capacity (kW)</h6>
+      <p>Calculated by:<br><b>Total Capacity = (Panel Power Rating × Number of Modules) / 1000</b></p>
+      <p><br>Panel Power Rating: 400W<br>Number of Modules: Calculated from rooftop area divided by panel area (1.8m² per panel)</p>`,
+    
+    'total-annual-output': `
+      <h6><i class="bi bi-battery-charging"></i> Total Annual Output (kWh)</h6>
+      <p>Calculated by:<br><b>Annual Output = Σ(Monthly AC Output) × Number of Modules</b></p>
+      <p><br>Calculated using PVLib with location-specific solar irradiance data<br>Includes temperature effects on panel efficiency<br>Assumes 30° tilt and 180° azimuth (south-facing)</p>`,
+    
+    'total-co2-savings': `
+      <h6><i class="bi bi-tree"></i> Total CO₂ Savings (kg/year)</h6>
+      <p>Calculated by:<br><b>CO₂ Savings = Annual Output × Grid CO₂ Intensity</b></p>
+      <p><br>Grid CO₂ Intensity: 0.08 kg/kWh (Portugal average)<br>Based on displacement of grid electricity generation</p>`,
+    
+    'total-cost': `
+      <h6><i class="bi bi-tools"></i> Total Installation Cost</h6>
+      <p>Calculated by:<br><b>Installation Cost = Total Capacity × Cost per kW</b></p>
+      <p><br>Cost per kW: 1500€ (Portugal market average)<br>Includes panels, inverters, and installation labor<br>Does not include potential subsidies or tax incentives</p>`,
+    
+    'total-annual-savings': `
+      <h6><i class="bi bi-piggy-bank"></i> Total Annual Savings</h6>
+      <p>Calculated by:<br><b>Annual Savings = Annual Output × Electricity Cost</b></p>
+      <p><br>Electricity cost varies according to local energy tariffs but was used 0,24</p>`,
+    
+    // Rooftop Specific Metrics
+    'rooftop-capacity': `
+      <h6><i class="bi bi-lightning"></i> Rooftop Capacity (kW)</h6>
+      <p>Calculated by:<br><b>System Size = Panel Area × Panel Efficiency × 1000</b></p>`,
+    
+    'rooftop-modules': `
+      <h6><i class="bi bi-grid-3x3"></i> Number of Solar Panels</h6>
+      <p>Calculated by:<br><b>Number of Modules = Rooftop Area / Panel Area</b></p>
+      <p><br>Assuming standard panel size around 1.8m²</p>
+      <p><br>Assuming only 20% of the identified area can be used.</p>`,
+    
+    'rooftop-annual-output': `
+      <h6><i class="bi bi-battery-charging"></i> Rooftop Annual Output (kWh)</h6>
+      <p>Calculated by:<br><b>Annual Output = Irradiance × System Size × Performance Ratio</b></p>`,
+    
+    'rooftop-co2-savings': `
+      <h6><i class="bi bi-tree"></i> Rooftop CO₂ Savings (kg/year)</h6>
+      <p>Calculated by:<br><b>CO₂ Savings = Annual Output × Grid CO₂ Intensity</b></p>`,
+    
+    'rooftop-cost': `
+      <h6><i class="bi bi-tools"></i> Rooftop Installation Cost</h6>
+      <p>Calculated by:<br><b>Installation Cost = Capacity × Cost per kW</b></p>`
+  };
+
+  // Attach click event to each metric-item
+  document.querySelectorAll('.metric-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const valueElement = this.querySelector('.metric-value');
+      if (!valueElement) return;
+
+      const metricId = valueElement.getAttribute('id');
+      const explanation = calculationExplanations[metricId];
+      const modalBody = document.getElementById('calculationModalBody');
+
+      if (explanation) {
+        modalBody.innerHTML = explanation;
+        const modal = new bootstrap.Modal(document.getElementById('calculationModal'));
+        modal.show();
+      }
+    });
+  });
+
+});
+
 
 function formatNumber(num) {
   if (num >= 1000000) {

@@ -1,0 +1,10 @@
+flask
+gunicorn
+numpy
+opencv-python
+pandas
+geopandas
+requests
+python-dotenv
+ultralytics
+pvlib

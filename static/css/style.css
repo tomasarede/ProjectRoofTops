@@ -1,3 +1,12 @@
+/*
+Energy Services Course - IST - April 2025
+
+Diogo Franco ist1103276
+João Santos ist1103243
+Tomás Arêde ist1103239
+*/
+
+
 /* Modern Dark Theme Base */
 :root {
   --bg-primary: #1e1f25;
@@ -56,7 +65,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.5px;
   font-size: 1.3rem;
-  color: white;
+  color: white !important;
 }
 
 .navbar-brand i {
@@ -617,3 +626,5 @@ body {
 .badge.bg-primary {
   background: var(--gradient-primary) !important;
 }
+
+

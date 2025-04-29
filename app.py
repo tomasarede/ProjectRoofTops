@@ -1,3 +1,11 @@
+"""
+Energy Services Course - IST - April 2025
+
+Diogo Franco ist1103276
+João Santos ist1103243
+Tomás Arêde ist1103239
+"""
+
 import os
 from dotenv import load_dotenv
 import json
@@ -21,11 +29,11 @@ import time
 load_dotenv()
 
 # PV System Constants
-PV_PANEL_COST_PER_KW = 850  # Cost in $ per kW of installed capacity
-PV_PANEL_EFFICIENCY = 0.19  # Panel efficiency (19%)
-ELECTRICITY_COST_PER_KWH = 0.14  # Average electricity cost per kWh
-CO2_PER_KWH = 0.4  # kg of CO2 per kWh of grid electricity
-PANEL_POWER_RATING_W = 300  # Watts per panel
+PV_PANEL_COST_PER_KW = 1500  # ~ cost in € per kW of installed capacity in Portugal
+PV_PANEL_EFFICIENCY = 0.19  # ~ panel efficiency (19%) - usually between 15% to 22%
+ELECTRICITY_COST_PER_KWH = 0.24  # average electricity cost on regular market per kWh in portugal (€0.20 to €0.25 per kWh on free market)
+CO2_PER_KWH = 0.08  # kg of CO2 per kWh of grid electricity (Portugal)
+PANEL_POWER_RATING_W = 400  # Watts per panel
 
 # ––––– CONFIGURATION –––––
 GOOGLE_STATIC_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap"
@@ -94,12 +102,13 @@ def capture():
         )
 
         # YOLO inference
-        results = model.predict(source=image, conf=0.3)[0]
+        results = model.predict(source=image, conf=0.4)[0]
         accent = (77, 157, 224)  
 
         rooftop_data = []
         for i, box in enumerate(results.boxes):
             x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+        
             conf = float(box.conf[0])
             
 
@@ -147,18 +156,13 @@ def capture():
                 2,
                 lineType=cv2.LINE_AA
             )
-
-            # Approximate rooftop area in m² (based on zoom level)
-            if zoom == 19:
-                meters_per_pixel = 0.149
-            elif zoom >= 20:
-                meters_per_pixel = 0.075
+            meters_per_pixel = 156543.03392 * np.cos(np.radians(lat)) / (2 ** zoom)
             width = (x2 - x1) * meters_per_pixel
             height = (y2 - y1) * meters_per_pixel
             area_m2 = width * height
 
             panel_area_m2 = 1.8
-            num_modules = int(area_m2 / panel_area_m2)
+            num_modules = int((area_m2 / panel_area_m2 )* 0.2)
 
             # PVLIB simulation (basic setup)
             site = Location(latitude=lat, longitude=lng)
@@ -204,8 +208,6 @@ def capture():
             # Annual Financial Savings
             annual_financial_savings = kwh_total * ELECTRICITY_COST_PER_KWH
             
-            # ROI Period 
-            roi_years = installation_cost / annual_financial_savings if annual_financial_savings > 0 else float('inf')
 
             rooftop_data.append({
                 "box": [x1, y1, x2, y2],
@@ -217,7 +219,6 @@ def capture():
                 "co2_savings_kg": round(annual_co2_savings_kg, 2),
                 "installation_cost": round(installation_cost, 2),
                 "annual_savings": round(annual_financial_savings, 2),
-                "roi_years": round(roi_years, 1),
                 "capacity_kw": round(total_capacity_kw, 2)
             })
 
