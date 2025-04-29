@@ -11,62 +11,48 @@ from dotenv import load_dotenv
 import json
 import requests
 
-from flask import Flask, render_template, request, jsonify, Response, send_file
+from flask import Flask, render_template, request, jsonify, send_file
 
 import cv2
 import numpy as np
-import geopandas as gpd
 from ultralytics import YOLO
 
 from pvlib.pvsystem import PVSystem
 from pvlib.location import Location
-from pvlib import temperature
 from pvlib.temperature import sapm_cell, TEMPERATURE_MODEL_PARAMETERS
 import pandas as pd
 import time
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
-# PV System Constants
-PV_PANEL_COST_PER_KW = 1500  # ~ cost in € per kW of installed capacity in Portugal
-PV_PANEL_EFFICIENCY = 0.19  # ~ panel efficiency (19%) - usually between 15% to 22%
-ELECTRICITY_COST_PER_KWH = 0.24  # average electricity cost on regular market per kWh in portugal (€0.20 to €0.25 per kWh on free market)
-CO2_PER_KWH = 0.08  # kg of CO2 per kWh of grid electricity (Portugal)
-PANEL_POWER_RATING_W = 400  # Watts per panel
-
-# ––––– CONFIGURATION –––––
-GOOGLE_STATIC_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap"
+# Constants
+PV_PANEL_COST_PER_KW = 1500
+PV_PANEL_EFFICIENCY = 0.19
+ELECTRICITY_COST_PER_KWH = 0.24
+CO2_PER_KWH = 0.08
+PANEL_POWER_RATING_W = 400
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 MODEL_PATH = "models/best_rooftop_model.pt"
+GOOGLE_STATIC_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap"
 
-# Ensure output directories exist
-os.makedirs("static/prints", exist_ok=True)
-os.makedirs("static/results", exist_ok=True)
-
-# Load YOLOv8 model
+# Load model
 model = YOLO(MODEL_PATH)
 
-# Initialize Flask app
+# Flask app
 app = Flask(__name__)
-
 
 @app.route("/")
 def index():
     return render_template("index.html", api_key=API_KEY)
 
-
+@app.route("/temp/<filename>")
+def serve_temp_file(filename):
+    path = os.path.join("/tmp", filename)
+    return send_file(path)
 
 @app.route("/capture", methods=["POST"])
 def capture():
-    import sys
-    print("Python path:", sys.executable)
-
-    """
-    Given center coordinates and zoom, fetch a Static Maps image,
-    run YOLOv8 inference (conf >= 0.3), draw aesthetic boxes and labels,
-    and return the annotated PNG.
-    """
     data = request.get_json()
     lat = data.get("lat")
     lng = data.get("lng")
@@ -86,91 +72,53 @@ def capture():
     }
 
     try:
-        # Fetch static map
         resp = requests.get(GOOGLE_STATIC_MAPS_URL, params=params)
         resp.raise_for_status()
         img_bytes = resp.content
 
-        # Optionally save the raw snapshot
-        raw_path = "static/prints/print.png"
+        # Save raw image to /tmp
+        raw_path = "/tmp/print.png"
         with open(raw_path, "wb") as f:
             f.write(img_bytes)
 
-        # Decode to OpenCV image
-        image = cv2.imdecode(
-            np.frombuffer(img_bytes, dtype=np.uint8), cv2.IMREAD_COLOR
-        )
+        image = cv2.imdecode(np.frombuffer(img_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
 
-        # YOLO inference
         results = model.predict(source=image, conf=0.4)[0]
-        accent = (77, 157, 224)  
+        accent = (77, 157, 224)
 
         rooftop_data = []
+
         for i, box in enumerate(results.boxes):
             x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-        
             conf = float(box.conf[0])
-            
 
-            # semi-transparent fill
             overlay = image.copy()
-            cv2.rectangle(overlay, (x1, y1), (x2, y2), accent, thickness=-1)
+            cv2.rectangle(overlay, (x1, y1), (x2, y2), accent, -1)
             image = cv2.addWeighted(overlay, 0.3, image, 0.7, 0)
+            cv2.rectangle(image, (x1, y1), (x2, y2), accent, 3, lineType=cv2.LINE_AA)
 
-            # anti-aliased border
-            cv2.rectangle(
-                image, (x1, y1), (x2, y2), accent, thickness=3, lineType=cv2.LINE_AA
-            )
-
-            # solid background for label
             label = f"{conf:.2f}"
-            (tw, th), baseline = cv2.getTextSize(
-                label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
-            )
+            (tw, th), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
             rect_tl = (x1, y1 - th - baseline - 4)
             rect_br = (x1 + tw + 6, y1)
-            cv2.rectangle(image, rect_tl, rect_br, accent, thickness=-1)
-
-            # anti-aliased white text
+            cv2.rectangle(image, rect_tl, rect_br, accent, -1)
             text_org = (x1 + 3, y1 - baseline - 2)
-            cv2.putText(
-                image,
-                label,
-                text_org,
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (255, 255, 255),
-                2,
-                lineType=cv2.LINE_AA,
-            )
+            cv2.putText(image, label, text_org, cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2, cv2.LINE_AA)
+            cv2.putText(image, f"#{i+1}", (x1+5, y1+25), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,255,255), 2, cv2.LINE_AA)
 
-            # Draw rooftop number label (e.g., Rooftop #1)
-            label_text = f"#{i + 1}"
-            cv2.putText(
-                image,
-                label_text,
-                (x1 + 5, y1 + 25),  # position slightly inside the box
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
-                (255, 255, 255),  # white text
-                2,
-                lineType=cv2.LINE_AA
-            )
             meters_per_pixel = 156543.03392 * np.cos(np.radians(lat)) / (2 ** zoom)
             width = (x2 - x1) * meters_per_pixel
             height = (y2 - y1) * meters_per_pixel
             area_m2 = width * height
 
             panel_area_m2 = 1.8
-            num_modules = int((area_m2 / panel_area_m2 )* 0.2)
+            num_modules = int((area_m2 / panel_area_m2) * 0.2)
 
-            # PVLIB simulation (basic setup)
             site = Location(latitude=lat, longitude=lng)
-
             system = PVSystem(
                 surface_tilt=30, surface_azimuth=180,
                 module_parameters={'pdc0': PANEL_POWER_RATING_W, 'gamma_pdc': -0.003},
-                inverter_parameters={'pdc0': PANEL_POWER_RATING_W * 0.97}  # Inverter typically sized at 97% of panel capacity
+                inverter_parameters={'pdc0': PANEL_POWER_RATING_W * 0.97}
             )
 
             timezone = site.tz
@@ -178,36 +126,20 @@ def capture():
             weather = site.get_clearsky(times)
             params = TEMPERATURE_MODEL_PARAMETERS['sapm']['open_rack_glass_glass']
 
-            # Compute module cell temperatures using the Sandia model
-            temps = sapm_cell(
-                poa_global=weather['ghi'],
-                temp_air=25,
-                wind_speed=1,
-                **params
-            )
-
-            # Use the cell temps in your DC → AC power calculation
+            temps = sapm_cell(poa_global=weather['ghi'], temp_air=25, wind_speed=1, **params)
             dc = system.pvwatts_dc(weather['ghi'], temps)
             ac = np.minimum(dc, system.inverter_parameters['pdc0'])
             kwh_per_module = float(ac.sum()) / 1000
             kwh_total = round(kwh_per_module * num_modules, 2)
 
-            # Calculate monthly production
             ac_series = pd.Series(ac, index=times)
-            monthly_ac = ac_series.resample('ME').sum()  # monthly sum
+            monthly_ac = ac_series.resample('ME').sum()
             monthly_kwh = [round(val / 1000 * num_modules, 2) for val in monthly_ac]
 
-    
-            # CO2 Savings
             annual_co2_savings_kg = kwh_total * CO2_PER_KWH
-            
-            # Installation Cost
             total_capacity_kw = (PANEL_POWER_RATING_W * num_modules) / 1000
             installation_cost = total_capacity_kw * PV_PANEL_COST_PER_KW
-            
-            # Annual Financial Savings
             annual_financial_savings = kwh_total * ELECTRICITY_COST_PER_KWH
-            
 
             rooftop_data.append({
                 "box": [x1, y1, x2, y2],
@@ -222,10 +154,12 @@ def capture():
                 "capacity_kw": round(total_capacity_kw, 2)
             })
 
-        annotated_path = "static/results/annotated.png"
+        # Save annotated image
+        annotated_path = "/tmp/annotated.png"
         cv2.imwrite(annotated_path, image)
+
         return jsonify({
-            "image_path": f"/static/results/annotated.png?ts={int(time.time())}",
+            "image_path": f"/temp/annotated.png?ts={int(time.time())}",
             "rooftop_data": rooftop_data
         })
 
